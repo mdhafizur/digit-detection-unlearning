@@ -3,6 +3,7 @@ import os
 import logging
 from io import BytesIO
 from flask import Flask, render_template, request, jsonify
+from flask_frozen import Freezer
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
@@ -13,6 +14,7 @@ import numpy as np
 from threading import Lock
 
 app = Flask(__name__)
+freezer = Freezer(app)
 socketio = SocketIO(app)
 thread = None
 thread_lock = Lock()
@@ -183,3 +185,13 @@ def handle_connect():
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
+
+
+# Additional route to generate static files
+@freezer.register_generator
+def index():
+    yield "/"
+
+
+if __name__ == "__main__":
+    freezer.freeze()

@@ -8,6 +8,7 @@ click==8.1.7
 Flask==3.0.3
 Flask-SocketIO==5.3.6
 flatbuffers==24.3.25
+Frozen-Flask==1.0.2
 gast==0.5.4
 google-pasta==0.2.0
 grpcio==1.63.0
