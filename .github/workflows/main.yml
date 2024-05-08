@@ -22,7 +22,7 @@ jobs:
 
       - name: Freeze Flask app
         run: |
-          python app.py
+          gunicorn -w 4 -b 0.0.0.0:8000 app:app
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

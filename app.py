@@ -184,7 +184,7 @@ def handle_connect():
 
 
 if __name__ == "__main__":
-    socketio.run(app, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=False)
 
 
 # Additional route to generate static files
