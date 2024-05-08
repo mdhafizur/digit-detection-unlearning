@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digit Recognition</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #09f;
+            animation: spin 1s linear infinite;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-6">
+                <h1 class="mb-4">Digit Recognition</h1>
+                <form id="predict-form" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="image">Upload Image:</label><br>
+                        <input type="file" id="image" name="image" accept="image/*" required class="form-control-file">
+                    </div>
+                    <div class="form-group">
+                        <img id="image-preview" src="#" alt="Preview" style="max-width: 300px; max-height: 300px; display: none;">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Predict Digit</button>
+                    <span id="predict-spinner" class="spinner" style="display: none;"></span>
+                    <p id="predict-result"></p>
+                </form>
+                <hr>
+                <form id="unlearn-form">
+                    <div class="form-group">
+                        <label for="digit">Digit to Unlearn:</label><br>
+                        <input type="number" id="digit" name="digit" min="0" max="9" required class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-danger">Unlearn Digit</button>
+                    <span id="unlearn-spinner" class="spinner" style="display: none;"></span>
+                    <p id="unlearn-result"></p>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <h2>Logs</h2>
+                <div id="log-messages"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (optional, if you need JavaScript features) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+
+    <script>
+        // Function to handle image preview
+        document.getElementById("image").addEventListener("change", function () {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById("image-preview").src = e.target.result;
+                document.getElementById("image-preview").style.display = "block";
+            };
+            reader.readAsDataURL(this.files[0]);
+        });
+
+        // Function to handle form submission for predicting digit
+        document.getElementById("predict-form").addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent form submission
+            var formData = new FormData(this); // Create FormData object
+            var spinner = document.getElementById("predict-spinner");
+            spinner.style.display = "inline-block"; // Show spinner
+            // Make AJAX request to predict endpoint
+            fetch("/predict", {
+                method: "POST",
+                body: formData,
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    document.getElementById("predict-result").textContent =
+                        "Predicted Digit: " + data.predicted_digit;
+                    spinner.style.display = "none"; // Hide spinner
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    document.getElementById("predict-result").textContent =
+                        "Error: Unable to predict the digit.";
+                    spinner.style.display = "none"; // Hide spinner
+                });
+        });
+
+        // Function to handle form submission for unlearning digit
+        document.getElementById("unlearn-form").addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent form submission
+            var formData = new FormData(this); // Create FormData object
+            var digit = formData.get("digit"); // Get the digit from the form data
+            var spinner = document.getElementById("unlearn-spinner");
+            spinner.style.display = "inline-block"; // Show spinner
+            // Make AJAX request to unlearn endpoint with digit included in the URL
+            fetch(`/unlearn/${digit}`, {
+                method: "POST",
+                // No need to include body in this case
+            })
+                .then((response) => response.text())
+                .then((data) => {
+                    document.getElementById("unlearn-result").textContent = data;
+                    spinner.style.display = "none"; // Hide spinner
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    document.getElementById("unlearn-result").textContent =
+                        "Error: Unable to unlearn the digit.";
+                    spinner.style.display = "none"; // Hide spinner
+                });
+        });
+
+        // Function to append log messages
+        function appendLogMessage(message) {
+            var logMessages = document.getElementById("log-messages");
+            var logParagraph = document.createElement("p");
+            logParagraph.textContent = message;
+            logMessages.appendChild(logParagraph);
+        }
+
+        // Connect to the WebSocket server
+        var socket = io.connect(window.location.protocol + '//' + document.domain + ':' + window.location.port);
+
+        // Receive log messages from the server
+        socket.on('log_message', function (message) {
+            appendLogMessage(message);
+        });
+    </script>
+</body>
+
+</html>
