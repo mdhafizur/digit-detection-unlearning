@@ -1,0 +1,16 @@
+version: "3"
+services:
+  digit-detection-app:
+    container_name: "digit-detection-unlearning"
+    hostname: "digit-detection-unlearning"
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # target: builder   # Specify the target stage here
+    ports:
+      - "6000:5000"
+    volumes:
+      - .:/app
+    environment:
+      FLASK_APP: app.py
+      FLASK_ENV: production
