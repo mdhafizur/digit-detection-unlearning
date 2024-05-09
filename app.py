@@ -4,8 +4,8 @@ import logging
 from io import BytesIO
 from flask import Flask, render_template, request, jsonify
 from tensorflow.keras.datasets import mnist
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, Input
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.preprocessing import image
 from flask_socketio import SocketIO
@@ -49,30 +49,42 @@ x_test = x_test.reshape(-1, 28, 28, 1).astype("float32") / 255.0
 y_train = to_categorical(y_train, 10)
 y_test = to_categorical(y_test, 10)
 
-# Define the CNN model architecture with increased capacity
-model = Sequential(
-    [
-        Conv2D(32, (3, 3), activation="relu", input_shape=(28, 28, 1)),
-        MaxPooling2D((2, 2)),
-        Conv2D(64, (3, 3), activation="relu"),
-        MaxPooling2D((2, 2)),
-        Conv2D(128, (3, 3), activation="relu"),  # Additional convolutional layer
-        MaxPooling2D((2, 2)),
-        Flatten(),
-        Dense(256, activation="relu"),  # Increase number of neurons in dense layer
-        Dropout(0.5),
-        Dense(128, activation="relu"),  # Additional dense layer
-        Dropout(0.5),
-        Dense(10, activation="softmax"),
-    ]
-)
+# Check if the saved model exists
+if os.path.exists("saved_model.h5"):
+    # Load the model
+    model = load_model("saved_model.h5")
+    print("Model loaded successfully.")
+else:
+    # Define and train the model
+    model = Sequential(
+        [
+            Input(shape=(28, 28, 1)),
+            Conv2D(32, (3, 3), activation="relu"),
+            MaxPooling2D((2, 2)),
+            Conv2D(64, (3, 3), activation="relu"),
+            MaxPooling2D((2, 2)),
+            Conv2D(128, (3, 3), activation="relu"),
+            MaxPooling2D((2, 2)),
+            Flatten(),
+            Dense(256, activation="relu"),
+            Dropout(0.5),
+            Dense(128, activation="relu"),
+            Dropout(0.5),
+            Dense(10, activation="softmax"),
+        ]
+    )
 
+    # Compile the model
+    model.compile(
+        optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"]
+    )
 
-# Compile the model with optimizer, loss function, and metrics
-model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+    # Train the model on the training data
+    model.fit(x_train, y_train, epochs=5, batch_size=32, validation_split=0.1)
 
-# Train the model on the training data
-model.fit(x_train, y_train, epochs=5, batch_size=32, validation_split=0.1)
+    # Save the model
+    model.save("saved_model.h5")
+    print("Model saved successfully.")
 
 
 # Function to send log messages to clients
