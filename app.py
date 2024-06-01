@@ -1,168 +1,164 @@
-from logging.handlers import RotatingFileHandler
-import os
-import logging
-from io import BytesIO
-from flask import Flask, render_template, request, jsonify
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.preprocessing import image
-from flask_socketio import SocketIO
+from flask import Flask, request, jsonify, render_template
 import numpy as np
-from threading import Lock
-
-app = Flask(__name__)
-socketio = SocketIO(app)
-thread = None
-thread_lock = Lock()
-
-# Create a 'logs' folder if it doesn't exist
-if not os.path.exists("logs"):
-    os.makedirs("logs")
-
-# Configure logging
-# logging.basicConfig(filename="logs/app.log", level=logging.INFO)
-
-# Configure logging to both file and terminal
-log_formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-
-# File handler
-file_handler = RotatingFileHandler("logs/app.log", maxBytes=100000, backupCount=10)
-file_handler.setFormatter(log_formatter)
-file_handler.setLevel(logging.INFO)
-app.logger.addHandler(file_handler)
-
-# Terminal handler
-terminal_handler = logging.StreamHandler()
-terminal_handler.setFormatter(log_formatter)
-terminal_handler.setLevel(logging.INFO)
-app.logger.addHandler(terminal_handler)
-
-# Set the logging level for Flask app logger
-app.logger.setLevel(logging.INFO)
-
-# Load and preprocess MNIST data
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-x_train = x_train.reshape(-1, 28, 28, 1).astype("float32") / 255.0
-x_test = x_test.reshape(-1, 28, 28, 1).astype("float32") / 255.0
-y_train = to_categorical(y_train, 10)
-y_test = to_categorical(y_test, 10)
-
-# Define the CNN model architecture with increased capacity
-model = Sequential(
-    [
-        Conv2D(32, (3, 3), activation="relu", input_shape=(28, 28, 1)),
-        MaxPooling2D((2, 2)),
-        Conv2D(64, (3, 3), activation="relu"),
-        MaxPooling2D((2, 2)),
-        Conv2D(128, (3, 3), activation="relu"),  # Additional convolutional layer
-        MaxPooling2D((2, 2)),
-        Flatten(),
-        Dense(256, activation="relu"),  # Increase number of neurons in dense layer
-        Dropout(0.5),
-        Dense(128, activation="relu"),  # Additional dense layer
-        Dropout(0.5),
-        Dense(10, activation="softmax"),
-    ]
+import io
+import os
+import tensorflow as tf
+from tensorflow.keras.models import Sequential, model_from_json
+from tensorflow.keras.layers import (
+    Dense,
+    Dropout,
+    Conv2D,
+    MaxPooling2D,
+    Flatten,
+    BatchNormalization,
 )
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.utils import to_categorical
+from PIL import Image
+
+app = Flask(__name__, static_url_path="/static")
+
+# Define the directory for saving models
+MODEL_DIR = "models"
+if not os.path.exists(MODEL_DIR):
+    os.makedirs(MODEL_DIR)
+
+# Define the file paths for saving and loading the main model
+MODEL_JSON_FILE = os.path.join(MODEL_DIR, "model.json")
+MODEL_WEIGHTS_FILE = os.path.join(MODEL_DIR, "model.weights.h5")
+
+# Load and preprocess the MNIST dataset
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+x_train = x_train.astype(float) / 255.0
+x_test = x_test.astype(float) / 255.0
+y_train = to_categorical(y_train, num_classes=10)
+y_test = to_categorical(y_test, num_classes=10)
+
+# Reshape data based on the backend (channels_first or channels_last)
+if tf.keras.backend.image_data_format() == "channels_first":
+    x_train = x_train.reshape(x_train.shape[0], 1, 28, 28)
+    x_test = x_test.reshape(x_test.shape[0], 1, 28, 28)
+    input_shape = (1, 28, 28)
+else:
+    x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
+    x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
+    input_shape = (28, 28, 1)
 
 
-# Compile the model with optimizer, loss function, and metrics
-model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+# Define the model
+def build_model():
+    model = Sequential()
+    model.add(Conv2D(32, kernel_size=3, activation="relu", input_shape=input_shape))
+    model.add(MaxPooling2D())
+    model.add(Conv2D(32, kernel_size=3, activation="relu"))
+    model.add(BatchNormalization())
+    model.add(Conv2D(32, kernel_size=5, strides=2, padding="same", activation="relu"))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.4))
+    model.add(Conv2D(64, kernel_size=3, activation="relu"))
+    model.add(BatchNormalization())
+    model.add(Conv2D(64, kernel_size=3, activation="relu"))
+    model.add(BatchNormalization())
+    model.add(Conv2D(64, kernel_size=5, strides=2, padding="same", activation="relu"))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.4))
+    model.add(Flatten())
+    model.add(Dropout(0.4))
+    model.add(Dense(10, activation="softmax"))
+    model.compile(
+        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
+    )
+    return model
 
-# Train the model on the training data
-model.fit(x_train, y_train, epochs=5, batch_size=32, validation_split=0.1)
+
+# Load or initialize the model
+if os.path.exists(MODEL_JSON_FILE) and os.path.exists(MODEL_WEIGHTS_FILE):
+    with open(MODEL_JSON_FILE, "r") as json_file:
+        model = model_from_json(json_file.read())
+    model.load_weights(MODEL_WEIGHTS_FILE)
+    model.compile(
+        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
+    )
+else:
+    model = build_model()
 
 
-# Function to send log messages to clients
-def send_logs_from_file():
-    with open("logs/app.log", "r") as log_file:
-        for line in log_file:
-            socketio.emit("log_message", line.strip())
+# Train the model
+@app.route("/train", methods=["POST"])
+def train():
+    epochs = int(request.json.get("epochs", 5))
+    model.fit(x_train, y_train, epochs=epochs, validation_data=(x_test, y_test))
+
+    # Save the trained model
+    model_json = model.to_json()
+    with open(MODEL_JSON_FILE, "w") as json_file:
+        json_file.write(model_json)
+    model.save_weights(MODEL_WEIGHTS_FILE)
+
+    return jsonify({"message": "Model trained successfully"})
 
 
-# Continuously read log file and emit its contents to clients
-def background_thread():
-    while True:
-        socketio.sleep(1)
-        with thread_lock:
-            send_logs_from_file()
-
-
-# Endpoint to predict a digit given an image
+# Predict the digit from an image
 @app.route("/predict", methods=["POST"])
-def predict_digit():
-    # Check if the request contains the image file
-    if "image" not in request.files:
-        return jsonify({"error": "No image file found"}), 400
+def predict():
+    file = request.files["image"]
+    img = Image.open(io.BytesIO(file.read())).convert("L")
+    img = img.resize((28, 28))
+    img = np.array(img) / 255.0
+    img = img.reshape(1, 28, 28, 1)
 
-    # Get the image file from the request
-    image_file = request.files["image"]
+    prediction = model.predict(img)
+    digit = np.argmax(prediction)
+    accuracy = model.evaluate(x_test, y_test, verbose=0)[1]
 
-    # Load the image file and preprocess it
-    img = image.load_img(
-        BytesIO(image_file.read()), target_size=(28, 28), color_mode="grayscale"
-    )
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array /= 255.0
-
-    prediction = model.predict(img_array)  # Get the model's prediction for the digit
-    predicted_digit = (
-        prediction.argmax()
-    )  # Get the index of the highest probability, which represents the predicted digit
-
-    # Check if the prediction confidence is below a certain threshold
-    if prediction.max() < 0.8:
-        return jsonify({"error": "Unable to predict the digit."}), 400
-
-    socketio.emit("log_message", f"Predicted accuracy {prediction.max()}")
-
-    return jsonify({"predicted_digit": int(predicted_digit)})
+    return jsonify({"digit": int(digit), "accuracy": accuracy})
 
 
-# Endpoint to unlearn a specific digit
-@app.route("/unlearn/<int:digit>", methods=["POST"])
-def unlearn_digit(digit):
-    indices_to_keep = (
-        y_train.argmax(axis=1) != digit
-    )  # Filter indices where the label is not the specified digit
-    x_train_filtered = x_train[indices_to_keep]  # Filter the training images
-    y_train_filtered = y_train[indices_to_keep]  # Filter the corresponding labels
+@app.route("/unlearn/<int:digit_to_unlearn>", methods=["POST"])
+def unlearn(digit_to_unlearn):
+    global model
 
-    app.logger.info(f"Training data before unlearning digit {digit}:")
-    app.logger.info(
-        f"Total samples: {len(x_train)}, Digit {digit} samples: {len(x_train[y_train.argmax(axis=1) == digit])}"
+    # Define specific model file paths
+    specific_model_json_file = os.path.join(MODEL_DIR, f"model_{digit_to_unlearn}.json")
+    specific_model_weights_file = os.path.join(
+        MODEL_DIR, f"model_{digit_to_unlearn}.weights.h5"
     )
 
-    socketio.emit("log_message", f"Training data before unlearning digit {digit}:")
-    socketio.emit(
-        "log_message",
-        f"Total samples: {len(x_train)}, Digit {digit} samples: {len(x_train[y_train.argmax(axis=1) == digit])}",
-    )
+    # Check if specific model for the digit exists
+    if os.path.exists(specific_model_json_file) and os.path.exists(
+        specific_model_weights_file
+    ):
+        # Load the existing model
+        with open(specific_model_json_file, "r") as json_file:
+            specific_model = model_from_json(json_file.read())
+        specific_model.load_weights(specific_model_weights_file)
+    else:
+        # Filter out the given digit
+        mask = np.argmax(y_train, axis=1) != digit_to_unlearn
+        x_train_filtered = x_train[mask]
+        y_train_filtered = y_train[mask]
 
-    # Retrain the model without the specified digit
-    model.fit(
-        x_train_filtered,
-        y_train_filtered,
-        epochs=10,  # Increase the number of epochs for better adjustment
-        batch_size=32,
-        validation_split=0.1,
-    )
+        # Build and train a new model
+        specific_model = build_model()
+        specific_model.fit(
+            x_train_filtered,
+            y_train_filtered,
+            epochs=5,
+            validation_data=(x_test, y_test),
+        )
 
-    app.logger.info(f"Training data after unlearning digit {digit}:")
-    app.logger.info(
-        f"Total samples: {len(x_train_filtered)}, Digit {digit} samples: {len(x_train_filtered[y_train_filtered.argmax(axis=1) == digit])}"
-    )
+        # Save the newly trained specific model
+        model_json = specific_model.to_json()
+        with open(specific_model_json_file, "w") as json_file:
+            json_file.write(model_json)
+        specific_model.save_weights(specific_model_weights_file)
 
-    socketio.emit("log_message", f"Training data after unlearning digit {digit}:")
-    socketio.emit(
-        "log_message",
-        f"Total samples: {len(x_train_filtered)}, Digit {digit} samples: {len(x_train_filtered[y_train_filtered.argmax(axis=1) == digit])}",
-    )
+    # Use the specific model for future predictions
+    model = specific_model
 
-    return "Digit {} unlearned successfully.".format(digit)
+    return jsonify(
+        {"message": f"Model unlearned digit {digit_to_unlearn} successfully"}
+    )
 
 
 # Endpoint to render the HTML form
@@ -171,15 +167,5 @@ def home():
     return render_template("index.html")
 
 
-# WebSocket connection event
-@socketio.on("connect")
-def handle_connect():
-    pass
-    # global thread
-    # with thread_lock:
-    #     if thread is None:
-    #         thread = socketio.start_background_task(background_thread)
-
-
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    app.run(debug=True)
