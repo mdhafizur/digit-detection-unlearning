@@ -46,14 +46,21 @@ else:
 
 
 # Define the model
+# the architecture is built to progressively extract and learn features from the input images, 
+# reduce dimensions to manage computational complexity, and 
+# classify the images effectively into digit classes.
 def build_model():
     model = Sequential()
+    # Conv2D: Applies a convolution operation to the input data, detecting features such as edges and textures.
     model.add(Conv2D(32, kernel_size=3, activation="relu", input_shape=input_shape))
+    # MaxPooling2D: Reduces the dimensionality of the feature maps, retaining the most important information.
     model.add(MaxPooling2D())
     model.add(Conv2D(32, kernel_size=3, activation="relu"))
+    # BatchNormalization: Normalizes the output of the previous layer, improving stability and performance.
     model.add(BatchNormalization())
     model.add(Conv2D(32, kernel_size=5, strides=2, padding="same", activation="relu"))
     model.add(BatchNormalization())
+    # Dropout: Randomly drops neurons during training to prevent overfitting.
     model.add(Dropout(0.4))
     model.add(Conv2D(64, kernel_size=3, activation="relu"))
     model.add(BatchNormalization())
@@ -62,9 +69,12 @@ def build_model():
     model.add(Conv2D(64, kernel_size=5, strides=2, padding="same", activation="relu"))
     model.add(BatchNormalization())
     model.add(Dropout(0.4))
+    # Flatten: Converts the 2D output of the convolutional layers to a 1D vector.
     model.add(Flatten())
     model.add(Dropout(0.4))
+    # Dense: Fully connected layer for classification, with softmax activation to output probability distribution over 10 digit classes.
     model.add(Dense(10, activation="softmax"))
+    # compile: Configures the model for training with categorical crossentropy loss and Adam optimizer.
     model.compile(
         loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
     )
