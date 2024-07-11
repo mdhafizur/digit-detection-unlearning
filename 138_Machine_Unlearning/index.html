@@ -17,13 +17,23 @@
     <h1>MACHINE UNLEARNING</h1>
     <h2 class="author1">Md Hafizur Rahman</h2>
     <h2 class="author2">Karan Dhanawade</h2>
-    <h3 class="supervisor">Supervisor: Abubaker Gaber</h3>
+    <h3 class="adviser">Adviser: Abubaker Gaber</h3>
     <h3 class="affiliation">
       Professorship of Distributed and Self-Organizing Systems<br />
       Technical University Chemnitz<br />
       Chemnitz, Germany
     </h3>
   </header>
+
+  <section>
+    <h2>Abstract</h2>
+    <p>
+      This seminar report explores the concept of machine unlearning, highlighting its significance in ethical data
+      practices and compliance with privacy regulations. We discuss various methods and approaches, their applications
+      in different sectors, and evaluation metrics for assessing their effectiveness. The report aims to provide a
+      comprehensive understanding of machine unlearning and its implications for AI and privacy.
+    </p>
+  </section>
 
   <section>
     <h2>1 Introduction</h2>
@@ -38,8 +48,8 @@
     <h3>1.1 Overview and Importance</h3>
 
     <p>
-      Machine learning has become a ubiquitous technology, influencing everything from product recommendations to fraud
-      detection systems <a href="#r1">[1]</a>. This power, however, comes with the responsibility of ensuring ethical
+      "Machine learning has become a ubiquitous technology, influencing everything from product recommendations to fraud
+      detection systems" <a href="#r1">[1]</a>. This power, however, comes with the responsibility of ensuring ethical
       data practices. Large datasets used to train ML models can inadvertently capture and store personal information.
       This necessitates a new approach to data management, balancing the need for model efficacy with user privacy.
     </p>
@@ -70,7 +80,7 @@
       privacy laws while maintaining the integrity and functionality of the models.
     </p>
 
-    <h4>1.3 The Challenge of Data Retention in ML Models</h4>
+    <h3>1.3 The Challenge of Data Retention in ML Models</h3>
 
     <p>
       The very nature of ML models presents another hurdle. These models learn and adapt over time, continuously
@@ -80,7 +90,7 @@
       time-consuming process.
     </p>
 
-    <h4>1.4 Emergence of Machine Unlearning</h4>
+    <h3>1.4 Emergence of Machine Unlearning</h3>
 
     <p>
       In response to these challenges, the field of machine unlearning (MU) has emerged. MU focuses on developing
@@ -97,11 +107,11 @@
       essential components and motivations.</p>
     <h3>2.1 Definition and Conceptual Framework</h3>
     <p>
-      Machine unlearning can be broadly defined as the deliberate process of removing the influence of specific data
-      points or their associated information from a trained ML model <a href="#r1">[1]</a>. This process allows the
+      "Machine unlearning can be broadly defined as the deliberate process of removing the influence of specific data
+      points or their associated information from a trained ML model" <a href="#r1">[1]</a>. This process allows the
       model to essentially "forget" irrelevant or outdated information, thereby improving its adaptability and ensuring
       compliance with stringent privacy regulations <a href="#r4">[4]</a>. Here is a conceptual framework illustrating
-      the key elements of machine unlearning as shown in <a href="#figure1">Figure 1</a>:
+      the key elements of machine unlearning (cf. figure 1):
     </p>
     <ol>
       <li>
@@ -153,41 +163,9 @@
         or erroneous data can lead to dangerous outcomes. Machine unlearning can help mitigate these risks by removing
         the influence of such problematic data.
       </li>
-    </ul>
-    <p>The objectives of machine unlearning can be summarized as follows:</p>
-    <ul>
       <li>
-        <strong>Selective Removal:</strong> Ideally, machine unlearning techniques should target specific data points or
-        their influence while preserving the overall effectiveness of the model.
-      </li>
-      <li>
-        <strong>Efficiency:</strong> Unlearning techniques should be computationally efficient, particularly for large
-        models trained on massive datasets.
-      </li>
-      <li>
-        <strong>Formal Guarantees:</strong> Developing theoretical frameworks to ensure the effectiveness and security
-        of the unlearning process is crucial for its widespread adoption.
-      </li>
-    </ul>
-    <h3>2.3 Key Challenges in Achieving Machine Unlearning</h3>
-    <p>
-      Despite its potential benefits, achieving robust and efficient machine unlearning presents several significant
-      challenges:
-    </p>
-    <ul>
-      <li>
-        <strong>Data Dependencies:</strong> Machine learning models learn complex relationships within the data.
-        Removing specific points can have unintended consequences on these relationships, potentially affecting the
-        model's overall performance.
-      </li>
-      <li>
-        <strong>Model Complexity:</strong> Modern machine learning models, particularly deep neural networks, have
-        intricate internal representations of data. Identifying and removing the specific influence of individual data
-        points from such models can be extremely difficult.
-      </li>
-      <li>
-        <strong>Trade-offs:</strong> There is often a trade-off between the level of unlearning achieved and the impact
-        on model accuracy. Finding the optimal balance can be challenging and requires careful consideration.
+        <strong>Ethical Considerations:</strong> Ensuring that models do not retain data that subjects have chosen to
+        delete supports ethical data practices and respects individual privacy rights.
       </li>
     </ul>
   </section>
@@ -240,8 +218,7 @@
     <ul>
       <li>
         <strong>SISA (Sharding):</strong> This approach involves partitioning the training data into smaller,
-        non-overlapping subsets called shards as shown in <a href="#figure2">Figure 2</a>. Multiple models are trained
-        on these individual shards. When a data point
+        non-overlapping subsets called shards. Multiple models are trained on these individual shards. When a data point
         needs to be forgotten, only the models trained on the shards containing that data point need to be retrained,
         rather than retraining the entire model. This reduces the computational cost of unlearning <a
           href="#r5">[5]</a>.
@@ -249,20 +226,19 @@
       <figure>
         <img src="sisa.png" alt="Concept of SISA Training" id="figure2" />
         <figcaption>
-          <strong>Figure 2</strong>: Concept of SISA Training. <a href="#r5">[5]</a>
+          <strong>Figure 2</strong>: Concept of SISA Training <a href="#r5">[5]</a>
         </figcaption>
       </figure>
       <li>
         <strong>NTK (Neural Tangent Kernel):</strong> The Neural Tangent Kernel is a mathematical framework that
-        approximates the behavior of neural networks during training as shown in <a href="#figure3">Figure 3</a>.
-        NTK-based methods can efficiently update the model
+        approximates the behavior of neural networks during training. NTK-based methods can efficiently update the model
         weights to forget specific data points without requiring full retraining by leveraging the NTK approximation <a
           href="#r5">[5]</a>.
       </li>
       <figure>
         <img src="ntk.png" alt="Concept of NTK Training" id="figure3" />
         <figcaption>
-          <strong>Figure 3</strong>: Concept of NTK Training. <a href="#r12">[12]</a>
+          <strong>Figure 3</strong>: Concept of NTK Training <a href="#r12">[12]</a>
         </figcaption>
       </figure>
       <li>
@@ -271,16 +247,15 @@
         effectively reverses the contributions of the data points to be forgotten <a href="#r5">[5]</a>.
       </li>
       <li>
-        <strong>Zero-Shot Machine Unlearning:</strong> As shown in <a href="#figure4">Figure 4</a> this method addresses
-        scenarios where no original training data
+        <strong>Zero-Shot Machine Unlearning:</strong> This method addresses scenarios where no original training data
         is available for unlearning. Zero-shot unlearning can be accomplished using techniques like generating synthetic
         data that mimics the properties of the original data, leveraging generative models, or using other forms of
         auxiliary information <a href="#r9">[9]</a>.
       </li>
       <figure>
-        <img src="zero-shot.png" alt="Concept of Zero-Shot Machine Unlearning" id="figure4" />
+        <img src="zero-shot.png" height="400" alt="Concept of Zero-Shot Machine Unlearning" id="figure4" />
         <figcaption>
-          <strong>Figure 4</strong>: Concept of Zero-Shot Machine Unlearning. <a href="#r11">[11]</a>
+          <strong>Figure 4</strong>: Concept of Zero-Shot Machine Unlearning <a href="#r11">[11]</a>
         </figcaption>
       </figure>
       <li>
@@ -303,43 +278,12 @@
       The effectiveness of these algorithms depends on the specific implementation and the characteristics of the data
       and model <a href="#r5">[5]</a>.
     </p>
-
-    <h3>3.3 Strategies for Data Forgetting and Model Adaptation</h3>
-
-    <p>
-      Machine unlearning often involves a trade-off between forgetting effectiveness and model performance. Here are
-      some strategies to achieve optimal results:
-    </p>
-    <ul>
-      <li>
-        <strong>Selective Forgetting:</strong> This strategy focuses on forgetting only specific data points or features
-        deemed sensitive, while preserving the model's performance on the remaining data <a href="#r5">[5]</a>.
-      </li>
-      <li>
-        <strong>Multi-Stage Forgetting:</strong> This strategy involves applying forgetting techniques in stages,
-        allowing for fine-grained control over the forgetting process and minimizing performance degradation <a
-          href="#r4">[4]</a>.
-      </li>
-      <li>
-        <strong>Model Repair:</strong> After forgetting, techniques like retraining or fine-tuning can be employed to
-        restore the model's performance on the remaining relevant data <a href="#r5">[5]</a>.
-      </li>
-    </ul>
-    <p>
-      By employing appropriate strategies, machine unlearning can be effectively utilized to address privacy concerns
-      and data security challenges in various machine learning applications.
-    </p>
-
-    <h3>3.4 Differences Between Machine Learning and Machine Unlearning</h3>
-    <p>
-      Machine Learning focuses on learning from data to make accurate predictions or decisions. It involves training
-      models on large datasets to capture complex patterns and relationships. On the other hand, Machine Unlearning
-      focuses on selectively forgetting specific data points from a trained model to comply with privacy regulations or
-      improve model performance. It involves techniques to remove the influence of certain data without compromising the
-      overall functionality of the model.
-    </p>
   </section>
-
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
   <section>
     <h2>4 Applications and Use Cases of Machine Unlearning</h2>
     <p>
@@ -380,8 +324,7 @@
     <h3>4.3 Real-world Scenarios and Case Studies</h3>
 
     <p>
-      Machine unlearning holds promise in various real-world applications as represented in <a href="#figure5">Figure
-        5</a>. Here are some potential use cases:
+      Machine unlearning holds promise in various real-world applications. Here are some potential use cases:
     </p>
     <ul>
       <li>
@@ -423,7 +366,7 @@
     <figure>
       <img src="figure5.png" alt="Application of Machine Unlearning." id="figure5" />
       <figcaption>
-        <strong>Figure 5</strong>: Application of Machine Unlearning. <a href="#r13">[13]</a>
+        <strong>Figure 5</strong>: Application of Machine Unlearning <a href="#r13">[13]</a>
       </figcaption>
     </figure>
 
@@ -704,7 +647,7 @@
   </section>
 
   <section class="references">
-    <h2>8. References</h2>
+    <h2>8 References</h2>
     <p class="reference" id="r1">
       [1] T. T. Nguyen, T. T. Huynh, P. Le Nguyen, A. W.-C. Liew, H. Yin, and Q. V. H. Nguyen, "A Survey of Machine
       Unlearning," arXiv preprint arXiv:2209.02299, 2022. [Online]. Available: <a
@@ -778,6 +721,15 @@
       23, 2024].
     </p>
   </section>
+
+  <section>
+    <h3 class="repository">
+      GitHub Repository:
+    </h3>
+    <a
+      href="https://github.com/mdhafizur/digit-detection-unlearning">https://github.com/mdhafizur/digit-detection-unlearning</a>
+  </section>
+
 </body>
 
 </html>
