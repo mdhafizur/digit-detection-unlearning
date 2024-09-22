@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Digit Detection</title>
+    <title>Digit Detection & Unlearning</title>
     <link
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
       rel="stylesheet"
@@ -14,99 +14,117 @@
     />
   </head>
   <body onload="init()">
-    <div class="container">
-      <div class="row">
-        <div class="col-md-12">
-          <h1 class="mb-4 text-center">Digit Detection</h1>
+    <div class="flex-container">
+      <div class="left-container">
+        <h1 class="mb-4 text-center">Digit Detection & Unlearning</h1>
 
-          <h3 class="text-center">Draw a Digit</h3>
-          <div class="canvas-container mx-auto mb-2">
-            <canvas id="canvas" width="280" height="280"></canvas>
+        <h3 class="text-center">Draw a Digit</h3>
+        <div class="canvas-container mx-auto mb-2">
+          <canvas id="canvas" width="280" height="280"></canvas>
+        </div>
+        <div class="text-center">
+          <button id="clear-canvas" class="btn btn-warning mr-2">
+            Clear Canvas
+          </button>
+          <button id="predict-canvas" class="btn btn-primary">
+            Predict Digit
+          </button>
+          <span
+            id="canvas-predict-spinner"
+            class="spinner"
+            style="display: none"
+          ></span>
+        </div>
+        <p id="canvas-predict-result" class="text-center"></p>
+        <p id="canvas-predict-accuracy" class="text-center"></p>
+
+        <hr />
+
+        <form
+          id="predict-form"
+          enctype="multipart/form-data"
+          class="d-flex justify-content-center align-items-center flex-column"
+        >
+          <div class="form-group text-center">
+            <label for="image">Upload Image:</label><br />
+            <input
+              type="file"
+              id="image"
+              name="image"
+              accept="image/*"
+              required
+              class="form-control-file"
+            />
           </div>
-          <div class="text-center">
-            <button id="clear-canvas" class="btn btn-warning mr-2">
-              Clear Canvas
-            </button>
-            <button id="predict-canvas" class="btn btn-primary">
-              Predict Digit
-            </button>
-            <span
-              id="canvas-predict-spinner"
-              class="spinner"
-              style="display: none"
-            ></span>
+          <div class="form-group">
+            <img
+              id="image-preview"
+              src="#"
+              alt="Preview"
+              style="max-width: 300px; max-height: 300px; display: none"
+            />
           </div>
-          <p id="canvas-predict-result" class="text-center"></p>
-          <p id="canvas-predict-accuracy" class="text-center"></p>
+          <button type="submit" class="btn btn-primary">Predict Digit</button>
+          <span
+            id="predict-spinner"
+            class="spinner"
+            style="display: none"
+          ></span>
+          <p id="predict-result"></p>
+          <p id="predict-accuracy"></p>
+        </form>
 
-          <hr />
+        <hr />
+        <form id="unlearn-form" class="text-center">
+          <div class="form-group">
+            <label for="digit">Digit to Unlearn:</label><br />
+            <input
+              type="number"
+              id="digit"
+              name="digit"
+              min="0"
+              max="9"
+              required
+              class="form-control"
+            />
+          </div>
+          <div class="form-group">
+            <label for="algorithm">Select Unlearning Algorithm:</label><br />
+            <select id="algorithm" name="algorithm" class="form-control">
+              <option value="standard">Standard Unlearning</option>
+              <option value="sisa">SISA Unlearning</option>
+              <option value="approx">Approximate Unlearning</option>
+              <option value="certified">Certified Unlearning</option>
+              <option value="finetune">Fine-Tune Unlearning</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-danger">Unlearn Digit</button>
+          <span
+            id="unlearn-spinner"
+            class="spinner"
+            style="display: none"
+          ></span>
+          <p id="unlearn-result"></p>
+        </form>
+      </div>
 
-          <form
-            id="predict-form"
-            enctype="multipart/form-data"
-            class="d-flex justify-content-center align-items-center flex-column"
-          >
-            <div class="form-group text-center">
-              <label for="image">Upload Image:</label><br />
-              <input
-                type="file"
-                id="image"
-                name="image"
-                accept="image/*"
-                required
-                class="form-control-file"
-              />
-            </div>
-            <div class="form-group">
-              <img
-                id="image-preview"
-                src="#"
-                alt="Preview"
-                style="max-width: 300px; max-height: 300px; display: none"
-              />
-            </div>
-            <button type="submit" class="btn btn-primary">Predict Digit</button>
-            <span
-              id="predict-spinner"
-              class="spinner"
-              style="display: none"
-            ></span>
-            <p id="predict-result"></p>
-            <p id="predict-accuracy"></p>
-          </form>
-
-          <hr />
-
-          <form id="unlearn-form" class="text-center">
-            <div class="form-group">
-              <label for="digit">Digit to Unlearn:</label><br />
-              <input
-                type="number"
-                id="digit"
-                name="digit"
-                min="0"
-                max="9"
-                required
-                class="form-control"
-              />
-            </div>
-            <button type="submit" class="btn btn-danger">Unlearn Digit</button>
-            <span
-              id="unlearn-spinner"
-              class="spinner"
-              style="display: none"
-            ></span>
-            <p id="unlearn-result"></p>
-          </form>
+      <div class="right-container">
+        <div id="unlearning-visualization">
+          <h3 class="text-center">Unlearning Algorithm Visualization</h3>
+          <div id="algorithm-visualization" class="text-center">
+            <p>Select an algorithm to visualize how it works.</p>
+          </div>
         </div>
       </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <script src="{{ url_for('static', filename='canva.js') }}"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
   </body>
 </html>

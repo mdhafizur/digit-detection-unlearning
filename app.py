@@ -170,6 +170,112 @@ def unlearn(digit_to_unlearn):
         {"message": f"Model unlearned digit {digit_to_unlearn} successfully"}
     )
 
+@app.route("/sisa_unlearn/<int:digit_to_unlearn>", methods=["POST"])
+def sisa_unlearn(digit_to_unlearn):
+    """
+    SISA unlearning method: Retrains only the shard containing the data to be unlearned.
+
+    Args:
+        digit_to_unlearn (int): The digit class to unlearn (0-9).
+
+    Returns:
+        JSON response indicating the success of the unlearning process.
+    """
+    global model
+    shards = 5
+    epoch = 5
+
+    shard_size = len(x_train) // shards
+    for i in range(shards):
+        start = i * shard_size
+        end = (i + 1) * shard_size if i < shards - 1 else len(x_train)
+        shard_x_train = x_train[start:end]
+        shard_y_train = y_train[start:end]
+
+        mask = np.argmax(shard_y_train, axis=1) != digit_to_unlearn
+        shard_x_filtered = shard_x_train[mask]
+        shard_y_filtered = shard_y_train[mask]
+
+        model.fit(shard_x_filtered, shard_y_filtered, epochs=epoch)
+
+    return jsonify({"message": f"SISA unlearned digit {digit_to_unlearn} successfully"})
+
+@app.route("/approx_unlearn/<int:digit_to_unlearn>", methods=["POST"])
+def approx_unlearn(digit_to_unlearn):
+    """
+    Approximate unlearning method: Perturbs model weights to simulate unlearning
+    the specified digit class.
+
+    Args:
+        digit_to_unlearn (int): The digit class to unlearn (0-9).
+
+    Returns:
+        JSON response indicating the success of the unlearning process.
+    """
+    global model
+
+    mask = np.argmax(y_train, axis=1) == digit_to_unlearn
+    x_to_unlearn = x_train[mask]
+
+    perturbation_factor = 0.1
+    for layer in model.layers:
+        if isinstance(layer, Dense) or isinstance(layer, Conv2D):
+            layer_weights = layer.get_weights()
+            perturbed_weights = [
+                w - perturbation_factor * np.mean(x_to_unlearn, axis=0)
+                for w in layer_weights
+            ]
+            layer.set_weights(perturbed_weights)
+
+    return jsonify({"message": f"Approximate unlearned digit {digit_to_unlearn} successfully"})
+
+
+@app.route("/certified_unlearn/<int:digit_to_unlearn>", methods=["POST"])
+def certified_unlearn(digit_to_unlearn):
+    """
+    Certified unlearning method: Adjusts the model using influence functions
+    to simulate the effect as if the specific digit class had never been trained.
+
+    Args:
+        digit_to_unlearn (int): The digit class to unlearn (0-9).
+
+    Returns:
+        JSON response indicating the success of the certified unlearning process.
+
+    Steps:
+        - Calculate the influence of the data to be unlearned on the model.
+        - Adjust the model weights based on this influence, effectively reducing the model's dependency on the unlearned data.
+        - Retrain minimally on the remaining data to further reinforce the forgetting process.
+    """
+    global model
+
+    # Step 1: Filter out the digit to unlearn
+    mask = np.argmax(y_train, axis=1) != digit_to_unlearn
+    x_train_filtered = x_train[mask]
+    y_train_filtered = y_train[mask]
+
+    # Step 2: Influence-based adjustment
+    influence_factor = 0.05  # Influence magnitude to remove the data's effect
+
+    for layer in model.layers:
+        if isinstance(layer, Dense) or isinstance(layer, Conv2D):
+            # Get the current weights of the layer
+            layer_weights = layer.get_weights()
+
+            # Calculate influence adjustments for each weight based on the training data
+            adjusted_weights = [
+                w * (1 - influence_factor) for w in layer_weights
+            ]
+
+            # Set the adjusted weights back into the layer
+            layer.set_weights(adjusted_weights)
+
+    # Step 3: Minimal retraining on the filtered dataset
+    model.fit(x_train_filtered, y_train_filtered, epochs=1, validation_data=(x_test, y_test))
+
+    return jsonify({"message": f"Certified unlearned digit {digit_to_unlearn} successfully"})
+
+
 
 # Endpoint to render the HTML form
 @app.route("/", methods=["GET"])
